@@ -17,28 +17,28 @@ long calcRuntime(struct timeval *begin, struct timeval *end);
 
 double drand();
 
-void initMatrixRandom(double* matr,int dim,int random);
-void initMatrix(double* matr,int dim,int multiply);
+void initMatrixRandom(double* matr, int dim, int random);
+void initMatrix(double* matr, int dim, int multiply);
 
 void doBoss(int size, int matrSize, int initStyle);
-void doWorker(int rank,int size, int matrSize);
+void doWorker(int rank, int size, int matrSize);
 
-double* reorderMatrix(double *matr,unsigned size);
+double* reorderMatrix(double *matr, unsigned size);
 
-void plot(double* mat,int dim);
+void plot(double* mat, int dim);
 
 /**MAIN**/
-int main(int argc,char** argv){
+int main(int argc, char** argv){
 
-	int rank,size;
+	int rank, size;
 
 	int matrSize = SIZE;
 	int initStyle = INIT_STYLE_RANDOM;
 
-	MPI_Init(&argc,&argv);
+	MPI_Init(&argc, &argv);
 	
-	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-	MPI_Comm_size(MPI_COMM_WORLD,&size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 	if(argc == 2){
 		matrSize = atoi(argv[1]);
@@ -52,14 +52,14 @@ int main(int argc,char** argv){
 		}
 	}
 
-	printf("%d matrsize: %d\n",rank,matrSize);
+	printf("%d matrsize: %d\n", rank, matrSize);
 
 	if(rank == 0){
 		//boss node;
-		doBoss(size,matrSize,initStyle);
+		doBoss(size, matrSize, initStyle);
 	}else{
 		//worker node;
-		doWorker(rank,size,matrSize);
+		doWorker(rank, size, matrSize);
 	}
 
 
@@ -87,39 +87,39 @@ double drand(){
 }
 
 /*Function: initMatrixRandom()*/
-void initMatrixRandom(double* matr,int dim,int random){
+void initMatrixRandom(double* matr, int dim, int random){
 	int i;
 	int j;
 	
 	for(i = 0; i <dim; i++){
 		for(j = 0; j < dim; j++){
 			if(random == TRUE){
-				*(matr+j+i*dim)=drand();	
+				*(matr+j+i*dim) = drand();	
 			}else{
-				*(matr+j+i*dim)=0.0;
+				*(matr+j+i*dim) = 0.0;
 			}
 		}
 	}
 }
 
 /*Function: initMatrix()*/
-void initMatrix(double* matr,int dim,int multiply){
+void initMatrix(double* matr, int dim, int multiply){
 	int i;
 	int j;
 	
 	for(i = 0; i < dim; i++){
 		for(j = 0; j < dim; j++){
 			if(multiply == TRUE){
-				*(matr+j+i*dim)=i*j;	
+				*(matr+j+i*dim) = i*j;	
 			}else{
-				*(matr+j+i*dim)=i+j;
+				*(matr+j+i*dim) = i+j;
 			}
 		}
 	}
 
 }
 
-void doBoss(int size, int matrSize, int initStyle){
+void doBoss(int size,  int matrSize,  int initStyle){
 	double* matr1 = NULL;
 	double* matr2 = NULL;
 	double* bufferMatr = NULL;
@@ -140,7 +140,7 @@ void doBoss(int size, int matrSize, int initStyle){
 	int offset = 0;
 	int bufferMatrSize = 0;
 
-	struct timeval start,end;
+	struct timeval start, end;
 	long runtime; //runtime in us;
 	float runtimeSec; //runtime in sec;
 	float flops;
@@ -154,9 +154,9 @@ void doBoss(int size, int matrSize, int initStyle){
 	receiveBufferSize = matrSize;
 
 	if(workerSize & 0x01 && workerSize > 1){ //odd amount of worker
-		receiveBufferSize*=((matrSize/workerSize)+1);
+		receiveBufferSize* = ((matrSize/workerSize)+1);
 	}else{
-		receiveBufferSize*=(matrSize/workerSize);
+		receiveBufferSize* = (matrSize/workerSize);
 	}
 
 	recvBuffer = (double*)malloc(receiveBufferSize*sizeof(double));
@@ -164,25 +164,25 @@ void doBoss(int size, int matrSize, int initStyle){
 	matrErg = (double*)malloc(matrSize*matrSize*sizeof(double));
 
 	if(initStyle == INIT_STYLE_RANDOM){
-		initMatrixRandom(matr1,matrSize,TRUE);
-		initMatrixRandom(matr2,matrSize,TRUE);
+		initMatrixRandom(matr1, matrSize, TRUE);
+		initMatrixRandom(matr2, matrSize, TRUE);
 	}else{
-		initMatrix(matr1,matrSize,TRUE);	 // matr1[i,j] = i + j;
-		initMatrix(matr2,matrSize,FALSE);	 // matr2[i,j] = i * j;
+		initMatrix(matr1, matrSize, TRUE);	 // matr1[i, j] = i + j;
+		initMatrix(matr2, matrSize, FALSE);	 // matr2[i, j] = i * j;
 	}
 
-	matr2 = reorderMatrix(matr2,matrSize);
+	matr2 = reorderMatrix(matr2, matrSize);
 
-	initMatrixRandom(matrErg,matrSize,FALSE); //matrErg = 0.0;
+	initMatrixRandom(matrErg, matrSize, FALSE); //matrErg = 0.0;
 
 	#if DEBUG == TRUE
 		printf("Matr1\n");
-		plot(matr1,matrSize);
+		plot(matr1, matrSize);
 		printf("Matr2\n");
-		plot(matr2,matrSize);
+		plot(matr2, matrSize);
 	#endif
 
-	gettimeofday(&start,NULL);
+	gettimeofday(&start, NULL);
 
 	//send Matrices to the worker-nodes
 	for(i = 1;i < size;i++){
@@ -194,9 +194,9 @@ void doBoss(int size, int matrSize, int initStyle){
 	if(matrSize % workerSize > 0){
 		for(i = 1; i <= workerSize; i++){
 			if(workerSize & 0x01 && workerSize > 1){ //odd amount of worker
-				workerRows=((matrSize/workerSize)+1);
+				workerRows = ((matrSize/workerSize)+1);
 			}else{
-				workerRows=(matrSize/workerSize);
+				workerRows = (matrSize/workerSize);
 			}
 
 			workerRowDiff = matrSize - i * workerRows;
@@ -211,7 +211,7 @@ void doBoss(int size, int matrSize, int initStyle){
 		}
 		
 		#if DEBUG == TRUE
-		printf(" Boss should calculate %d rows \n",rows);
+		printf(" Boss should calculate %d rows \n", rows);
 		#endif
 
 		if(rows > 0){
@@ -230,15 +230,15 @@ void doBoss(int size, int matrSize, int initStyle){
 
 	//gather Results from worker-nodes
 	for(i = 1; i < size; i++){
-		MPI_Recv(recvBuffer,receiveBufferSize,MPI_DOUBLE,i,0,MPI_COMM_WORLD,&status);
-		MPI_Get_count(&status,MPI_DOUBLE,&recvSize);
+		MPI_Recv(recvBuffer, receiveBufferSize, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &status);
+		MPI_Get_count(&status, MPI_DOUBLE, &recvSize);
 				
 		for(j = 0; j < recvSize; j++){
 			*(matrErg+recvElem+j)= *(recvBuffer+j);
 		}
 
 		#if DEBUG == TRUE
-		printf("Received elements %d current amount of elements %d\n",recvSize,recvElem);
+		printf("Received elements %d current amount of elements %d\n", recvSize, recvElem);
 		#endif
 
 		recvElem += recvSize;
@@ -246,23 +246,23 @@ void doBoss(int size, int matrSize, int initStyle){
 
 	if(rows > 0){
 		for(i = 0; i < bufferMatrSize;i++){
-			*(matrErg+recvElem+i)= *(bufferMatr+i);
+			*(matrErg+recvElem+i) = *(bufferMatr+i);
 		}
 	}	
 
-	gettimeofday(&end,NULL);
+	gettimeofday(&end, NULL);
 	
 	#if DEBUG == TRUE
 		printf("Result\n");
-		plot(matrErg,matrSize);
+		plot(matrErg, matrSize);
 	#endif
 
-	runtime = calcRuntime(&start,&end);
+	runtime = calcRuntime(&start, &end);
 	runtimeSec = (float)runtime/1e6;
 	flops = (2*size*size)/(runtimeSec); //??
 
 	printf("#runtime[us] runtime[sec] flop size\n");
-	printf("%ld %f %f %d\n",runtime,runtimeSec,flops,matrSize);
+	printf("%ld %f %f %d\n", runtime, runtimeSec, flops, matrSize);
 	
 	if(matr1 != NULL){	
 		#if DEBUG == TRUE
@@ -300,7 +300,7 @@ void doBoss(int size, int matrSize, int initStyle){
 	}
 }
 
-void doWorker(int rank,int size, int matrSize){
+void doWorker(int rank, int size,  int matrSize){
 	double* matr1 = NULL;
 	double* matr2 = NULL;
 	double* erg = NULL;
@@ -311,7 +311,7 @@ void doWorker(int rank,int size, int matrSize){
 	int offset = 0;
 	int rowdiff = 0;
 
-	int i,j,h = 0;
+	int i, j, h = 0;
 	
 	MPI_Status status;
 	
@@ -337,19 +337,19 @@ void doWorker(int rank,int size, int matrSize){
 	workSize = matrSize*rows;	
 	erg = (double*)malloc(workSize*sizeof(double));
 	
-	MPI_Recv(matr1,SIZE*SIZE,MPI_DOUBLE,0,1,MPI_COMM_WORLD,&status);
+	MPI_Recv(matr1, SIZE*SIZE, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &status);
 	#if DEBUG == TRUE
-		printf("%d has received matrix no. 1\n",rank);
+		printf("%d has received matrix no. 1\n", rank);
 	#endif
 
-	MPI_Recv(matr2,SIZE*SIZE,MPI_DOUBLE,0,2,MPI_COMM_WORLD,&status);
+	MPI_Recv(matr2, SIZE*SIZE, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD, &status);
 
 	#if DEBUG == TRUE
-		printf("%d has received matrix no. 2\n",rank);
+		printf("%d has received matrix no. 2\n", rank);
 	#endif
 
 	#if DEBUG == TRUE
-		printf("%d worksize %d rows %d offset %d\n",rank,workSize,rows,offset);
+		printf("%d worksize %d rows %d offset %d\n", rank, workSize, rows, offset);
 	#endif	
 
 	for(i = 0;i < rows; i++){//rows of the result-matrix
@@ -361,7 +361,7 @@ void doWorker(int rank,int size, int matrSize){
 	}
 
 	//Send Result back to boss node
-	MPI_Send(erg,workSize,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
+	MPI_Send(erg, workSize, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	
 	if(matr1 != NULL){
 		free(matr1);
@@ -377,7 +377,7 @@ void doWorker(int rank,int size, int matrSize){
 }
 
 /*Function: reorderMatrix() */
-double* reorderMatrix(double *matr,unsigned size){
+double* reorderMatrix(double *matr, unsigned size){
 	unsigned i = 0;
 	unsigned j = 0;
 	unsigned matrSize = size*size;
@@ -396,13 +396,13 @@ double* reorderMatrix(double *matr,unsigned size){
 }
 
 /*Function: plot()*/
-void plot(double* mat,int dim){
+void plot(double* mat, int dim){
 	int i;
 	int j;
 	
 	for(i=0;i<dim;i++){
 		for(j=0;j<dim;j++){
-			printf("%lf ",*(mat+j+i*dim));
+			printf("%lf ", *(mat+j+i*dim));
 		}
 		printf("\n");
 	}	
